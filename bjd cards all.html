@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>БЖД — Карточки</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Golos+Text:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --text: #e8e8e8;
+    --muted: #555;
+    --border: #222;
+    --green: #39ff14;
+    --red: #ff4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Golos Text', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+
+  /* ── MENU ── */
+  .menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .menu-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 9vw, 3.8rem);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-align: center;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #ff6a00, #ff4444);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(255,106,0,0.3));
+  }
+
+  .menu-sub {
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+
+  .deck-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: min(480px, 100%);
+  }
+
+  .deck-card {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 24px 22px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+    background: #111;
+  }
+
+  .deck-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 16px 16px 0 0;
+    transition: opacity 0.2s;
+  }
+
+  .deck-card.fire::before { background: linear-gradient(90deg, transparent, #ff6a00, transparent); }
+  .deck-card.aid::before  { background: linear-gradient(90deg, transparent, #39ff14, transparent); }
+
+  .deck-card:hover { transform: translateY(-2px); }
+  .deck-card.fire:hover { border-color: rgba(255,106,0,0.4); box-shadow: 0 8px 30px rgba(255,106,0,0.1); }
+  .deck-card.aid:hover  { border-color: rgba(57,255,20,0.4); box-shadow: 0 8px 30px rgba(57,255,20,0.1); }
+
+  .deck-icon { font-size: 2.2rem; margin-bottom: 10px; }
+
+  .deck-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  .deck-card.fire .deck-name { color: #ff6a00; }
+  .deck-card.aid  .deck-name { color: #39ff14; }
+
+  .deck-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+  .deck-count {
+    position: absolute;
+    top: 20px; right: 20px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    opacity: 0.12;
+    line-height: 1;
+  }
+
+  /* ── GAME ── */
+  .game { display: none; flex-direction: column; align-items: center; width: 100%; animation: fadeIn 0.4s ease; }
+  .game.visible { display: flex; }
+
+  .game-header {
+    display: flex;
+    align-items: center;
+    width: min(480px, 100%);
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+
+  .back-btn {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #111;
+    color: var(--muted);
+    font-family: 'Golos Text', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { color: var(--text); border-color: #333; }
+
+  .game-title-wrap { flex: 1; }
+
+  .game-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+
+  .game-title.fire { color: #ff6a00; }
+  .game-title.aid  { color: #39ff14; }
+
+  .round-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .dot-pulse {
+    width: 5px; height: 5px; border-radius: 50%;
+    animation: pulse 1.2s infinite;
+  }
+  .fire .dot-pulse { background: #ff6a00; }
+  .aid  .dot-pulse { background: #39ff14; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+  .knew-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+
+  /* progress */
+  .progress-bar {
+    width: min(480px, 100%);
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 6px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.35s ease;
+  }
+  .fire .progress-fill, #progressFill.fire { background: #ff6a00; box-shadow: 0 0 8px rgba(255,106,0,0.5); }
+  .aid  .progress-fill, #progressFill.aid  { background: #39ff14; box-shadow: 0 0 8px rgba(57,255,20,0.5); }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+    width: min(480px, 100%);
+    margin-bottom: 20px;
+  }
+
+  /* card */
+  .scene {
+    width: min(480px, 100%);
+    height: 320px;
+    perspective: 1000px;
+    cursor: pointer;
+    margin-bottom: 22px;
+  }
+
+  .card {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .card.flipped { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 28px 22px; text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .card-front { background: #141414; border-color: #2a2a2a; }
+  .card-front::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 16px 16px 0 0; opacity: 0.5;
+  }
+  .fire-theme .card-front::before { background: linear-gradient(90deg,transparent,#ff6a00,transparent); }
+  .aid-theme  .card-front::before { background: linear-gradient(90deg,transparent,#39ff14,transparent); }
+
+  .card-back { transform: rotateY(180deg); }
+  .fire-theme .card-back { background: #1a0f00; border-color: #2e1a00; }
+  .aid-theme  .card-back { background: #0f1f0f; border-color: #1a2e1a; }
+  .card-back::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 16px 16px 0 0;
+  }
+  .fire-theme .card-back::before { background: linear-gradient(90deg,transparent,#ff6a00,transparent); }
+  .aid-theme  .card-back::before { background: linear-gradient(90deg,transparent,#39ff14,transparent); }
+
+  .q-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem; color: #1e1e1e;
+    position: absolute; top: 12px; left: 18px;
+    line-height: 1; pointer-events: none;
+  }
+
+  .clabel {
+    font-size: 0.68rem; letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 14px;
+    padding: 3px 10px; border-radius: 20px;
+  }
+  .fire-theme .clabel { background: rgba(255,106,0,0.08); color: #ff6a00; border: 1px solid rgba(255,106,0,0.2); }
+  .aid-theme  .clabel { background: rgba(57,255,20,0.08);  color: #39ff14; border: 1px solid rgba(57,255,20,0.2); }
+
+  .question-text { font-size: clamp(0.9rem,3vw,1.05rem); line-height: 1.55; color: #d0d0d0; font-weight: 600; }
+  .answer-text   { font-size: clamp(0.8rem,2.3vw,0.93rem); line-height: 1.65; }
+  .fire-theme .answer-text { color: #e8d0b0; }
+  .aid-theme  .answer-text { color: #c8e8c8; }
+
+  .hint { position: absolute; bottom: 14px; font-size: 0.68rem; color: var(--muted); }
+
+  /* controls */
+  .controls {
+    display: flex; gap: 10px;
+    width: min(480px, 100%);
+  }
+
+  .btn {
+    flex: 1; padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px; background: #111;
+    color: var(--muted);
+    font-family: 'Golos Text', sans-serif;
+    font-size: 0.82rem; font-weight: 600;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn:hover { border-color: #333; color: var(--text); }
+
+  .btn.knew-btn {
+    border-color: rgba(57,255,20,0.3); color: var(--green);
+    background: rgba(57,255,20,0.04);
+  }
+  .btn.knew-btn:hover { background: rgba(57,255,20,0.1); }
+
+  .btn.skip-btn {
+    border-color: rgba(255,68,68,0.3); color: var(--red);
+    background: rgba(255,68,68,0.04);
+  }
+  .btn.skip-btn:hover { background: rgba(255,68,68,0.1); }
+
+  /* ── ROUND END ── */
+  .round-end {
+    display: none; flex-direction: column; align-items: center;
+    text-align: center; width: min(480px,100%);
+    animation: fadeIn 0.4s ease;
+  }
+  .round-end.visible { display: flex; }
+
+  .re-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem; margin-bottom: 4px;
+  }
+  .fire-theme .re-title { color: #ff6a00; text-shadow: 0 0 25px rgba(255,106,0,0.3); }
+  .aid-theme  .re-title { color: #39ff14;  text-shadow: 0 0 25px rgba(57,255,20,0.3); }
+
+  .re-sub { color: var(--muted); font-size: 0.82rem; margin-bottom: 22px; }
+
+  .re-stats { display: flex; gap: 16px; margin-bottom: 22px; width: 100%; }
+
+  .stat-box {
+    flex: 1; padding: 16px; border-radius: 12px;
+    border: 1px solid var(--border); background: #111;
+    text-align: center;
+  }
+  .stat-box.g { border-color: rgba(57,255,20,0.2); background: rgba(57,255,20,0.04); }
+  .stat-box.r { border-color: rgba(255,68,68,0.2);  background: rgba(255,68,68,0.04); }
+
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; line-height: 1; }
+  .stat-box.g .stat-num { color: var(--green); }
+  .stat-box.r .stat-num { color: var(--red); }
+  .stat-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .btn-full {
+    width: 100%; padding: 14px;
+    border-radius: 10px; font-family: 'Golos Text', sans-serif;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer; font-size: 0.88rem; transition: all 0.2s;
+    margin-bottom: 10px; border: 1px solid;
+  }
+
+  .btn-primary-fire { border-color: #ff6a00; color: #ff6a00; background: rgba(255,106,0,0.06); }
+  .btn-primary-fire:hover { background: rgba(255,106,0,0.14); }
+  .btn-primary-aid  { border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.06); }
+  .btn-primary-aid:hover  { background: rgba(57,255,20,0.14); }
+  .btn-secondary { border-color: var(--border); color: var(--muted); background: #111; }
+  .btn-secondary:hover { color: var(--text); border-color: #333; }
+
+  /* ── FINAL ── */
+  .final-screen {
+    display: none; flex-direction: column; align-items: center;
+    text-align: center; animation: fadeIn 0.5s ease;
+  }
+  .final-screen.visible { display: flex; }
+
+  .trophy { font-size: 4rem; margin-bottom: 12px; }
+
+  .final-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 3rem;
+    margin-bottom: 6px;
+  }
+  .fire-theme .final-title { color: #ff6a00; text-shadow: 0 0 30px rgba(255,106,0,0.3); }
+  .aid-theme  .final-title { color: #39ff14;  text-shadow: 0 0 30px rgba(57,255,20,0.3); }
+
+  .final-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+  .final-rounds {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+    color: var(--muted); letter-spacing: 0.1em; margin-bottom: 28px;
+  }
+  .final-rounds b { color: var(--text); }
+
+  @keyframes fadeIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<!-- ══ MENU ══ -->
+<div class="menu" id="menu">
+  <div class="menu-title">БЖД</div>
+  <div class="menu-sub">Карточки для подготовки</div>
+  <div class="deck-cards">
+    <div class="deck-card fire" onclick="startGame('fire')">
+      <div class="deck-count">30</div>
+      <div class="deck-icon">🔥</div>
+      <div class="deck-name">Пожарная безопасность</div>
+      <div class="deck-desc">Методы тушения, классификации пожаров, огнетушители, классы производств, расчётные формулы</div>
+    </div>
+    <div class="deck-card aid" onclick="startGame('aid')">
+      <div class="deck-count">20</div>
+      <div class="deck-icon">🩺</div>
+      <div class="deck-name">Первая помощь</div>
+      <div class="deck-desc">Кровотечения, переломы, электротравмы, ожоги, обморок, искусственное дыхание</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div class="game" id="game">
+  <div class="game-header" id="gameHeader">
+    <button class="back-btn" onclick="goMenu()">← Меню</button>
+    <div class="game-title-wrap">
+      <div class="game-title" id="gameTitle">Пожарная безопасность</div>
+      <div class="round-badge">
+        <div class="dot-pulse" id="dotPulse"></div>
+        <span id="roundLabel">Круг 1</span>
+        &nbsp;·&nbsp; осталось <span id="deckSizeLabel">30</span>
+      </div>
+    </div>
+    <div class="knew-badge" id="knewBadge">✓ 0/30</div>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-labels">
+    <span>Карточка <span id="currentNum">1</span> из <span id="deckSize">30</span></span>
+    <span id="progressRight"></span>
+  </div>
+
+  <div class="scene" id="scene" onclick="flipCard()">
+    <div class="card" id="card">
+      <div class="card-face card-front">
+        <div class="q-number" id="qNum">01</div>
+        <div class="clabel">Вопрос</div>
+        <div class="question-text" id="questionText"></div>
+        <div class="hint">нажми чтобы увидеть ответ</div>
+      </div>
+      <div class="card-face card-back">
+        <div class="q-number" id="qNumBack">01</div>
+        <div class="clabel">Ответ</div>
+        <div class="answer-text" id="answerText"></div>
+        <div class="hint">знал? оцени ниже</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn prev" onclick="prevCard()">← Назад</button>
+    <button class="btn knew-btn" onclick="markKnew()">✓ Знал</button>
+    <button class="btn skip-btn" onclick="markSkip()">✗ Не знал</button>
+  </div>
+</div>
+
+<!-- ══ ROUND END ══ -->
+<div class="round-end" id="roundEnd">
+  <div class="re-title" id="reTitle">Круг 1 завершён!</div>
+  <div class="re-sub" id="reSub"></div>
+  <div class="re-stats">
+    <div class="stat-box g"><div class="stat-num" id="reKnew">0</div><div class="stat-lbl">✓ Знал</div></div>
+    <div class="stat-box r"><div class="stat-num" id="reSkip">0</div><div class="stat-lbl">✗ Не знал</div></div>
+  </div>
+  <button class="btn-full" id="btnNext" onclick="startNextRound()">Следующий круг →</button>
+  <button class="btn-full btn-secondary" onclick="goMenu()">← В меню</button>
+</div>
+
+<!-- ══ FINAL ══ -->
+<div class="final-screen" id="finalScreen">
+  <div class="trophy">🏆</div>
+  <div class="final-title" id="finalTitle">Все выучены!</div>
+  <div class="final-sub">Ты прошёл все карточки</div>
+  <div class="final-rounds">Кругов пройдено: <b id="finalRounds">1</b></div>
+  <button class="btn-full" id="btnPlayAgain" onclick="playAgain()" style="margin-bottom:10px">↺ Пройти ещё раз</button>
+  <button class="btn-full btn-secondary" onclick="goMenu()">← В меню</button>
+</div>
+
+<script>
+const DECKS = {
+  fire: {
+    name: 'Пожарная безопасность',
+    theme: 'fire',
+    cards: [
+      { q: "Что такое пожар?", a: "Неконтролируемое горение, причиняющее ущерб личности, имуществу и государству." },
+      { q: "Что такое пожарная безопасность?", a: "Состояние защищённости личности, имущества и государства от пожаров." },
+      { q: "Что необходимо для возникновения пожара?", a: "Три компонента: горючее вещество, окислитель и источник зажигания." },
+      { q: "Что такое противопожарный режим?", a: "Правила поведения людей, порядок организации производства и содержания помещений, обеспечивающие предупреждение нарушений требований пожарной безопасности." },
+      { q: "Классификация пожаров по внешним признакам?", a: "Скрытые, открытые, внутренние (внутри зданий), наружные (наиболее видные)." },
+      { q: "Классификация пожаров по месту возникновения?", a: "Отдельные и массовые. Массовые: природные, техногенные, пожары в зданиях и сооружениях." },
+      { q: "На какие виды делятся природные пожары?", a: "Лесные (верховые и низовые), степные и подземные. Низовые: беглые и устойчивые." },
+      { q: "Причины пожара?", a: "1) Социальные; 2) Технологические; 3) Природные." },
+      { q: "Поражающие факторы пожара?", a: "1) Огонь; 2) Повышенная температура воздуха; 3) Токсичные продукты разложения; 4) Дым; 5) Обрушивающиеся конструкции." },
+      { q: "На какие виды делится пожарная охрана по ст. 69?", a: "1) ГПС; 2) Ведомственная; 3) Муниципальная; 4) Добровольная; 5) Частная." },
+      { q: "Что такое ГПС?", a: "Государственная противопожарная служба — основной вид пожарной охраны в России, входит в МЧС как самостоятельная оперативная служба." },
+      { q: "От чего зависит пожарная обстановка?", a: "От: 1) пожаровзрывоопасных свойств веществ; 2) огнестойкости зданий; 3) плотности застройки; 4) метеоусловий (направление ветра)." },
+      { q: "Что такое горючесть для строительных материалов?", a: "Способность разрушаться под воздействием высокой температуры." },
+      { q: "Что такое огнестойкость строительных конструкций?", a: "Способность сопротивляться воздействию высокой температуры. Предел огнестойкости — время сохранения этой способности." },
+      { q: "Классы производств по пожаровзрывоопасности?", a: "А — взрывопожароопасные (t вспышки < 28°, НКПВ < 10%); Б — пожаровзрывоопасные (НКПВ > 10%, t 28–61°); В — пожароопасные (t > 61°); Г — негорючие в горячем состоянии; Д — негорючие в холодном; Е — взрывоопасные." },
+      { q: "Что такое взрыв?", a: "Выброс большого количества энергии в короткий промежуток времени в ограниченном объёме." },
+      { q: "Что такое температура вспышки?", a: "Минимальная температура вещества, при которой над его поверхностью образуются пары, вспыхивающие от источника зажигания." },
+      { q: "Что такое температура воспламенения?", a: "Минимальная температура, при которой вещество загорается и продолжает гореть самостоятельно." },
+      { q: "Что такое температура самовоспламенения?", a: "Минимальная температура, при которой возможно возгорание без источника зажигания." },
+      { q: "Метод охлаждения при тушении пожара?", a: "Удаление теплоты с поверхности вещества, охлаждение ниже температуры воспламенения. Применяется вода, углекислота." },
+      { q: "Объёмный метод тушения?", a: "Уменьшение кислорода до не более 14–16% по объёму путём введения инертных газов или паров (углекислота, пар)." },
+      { q: "Поверхностный метод тушения?", a: "Прекращение поступления кислорода к веществу. Применяются пена, порошки, песок." },
+      { q: "Метод химического торможения при тушении?", a: "Введение галоидосодержащих веществ — применяется порошком." },
+      { q: "Что такое огнетушитель?", a: "Переносное устройство для тушения за счёт выпуска запасённого огнетушащего вещества." },
+      { q: "Виды огнетушащих веществ?", a: "Вода, порошок, газ (CO₂), комбинированные составы." },
+      { q: "Первичные средства пожаротушения?", a: "Огнетушители, бочки с водой, ящики с песком, лопаты." },
+      { q: "Классификация огнетушителей по способу доставки?", a: "Переносные и передвижные." },
+      { q: "Когда применяется углекислотный огнетушитель и его формула?", a: "При пожарах в помещениях, на открытых площадках, для электроустановок. G = 1,79·V·Ф (кг), где V — расчётный объём, Ф — коэффициент." },
+      { q: "Когда применяется пенный огнетушитель и его формула?", a: "Для помещений, производств, резервуаров с ЛВЖ, нефтепроводов. n = (3,5·V)/(q·t), где q — производительность генератора, t — время тушения." },
+      { q: "Почему углекислотный огнетушитель — лучший выбор для архива документов?", a: "Тушит бумагу эффективно, не оставляет следов, не портит документы, не проводит ток (архивы часто под напряжением — проводка, серверы)." }
+    ]
+  },
+  aid: {
+    name: 'Первая помощь',
+    theme: 'aid',
+    cards: [
+      { q: "Что необходимо сделать, чтобы остановить видимое кровотечение?", a: "Если рана на конечности — быстро поднять её вверх, затем наложить давящую стерильную повязку." },
+      { q: "Какие действия являются принципами доврачебной помощи при травме?", a: "Создание покоя пострадавшему, иммобилизация и обезболивание." },
+      { q: "Допустимое время наложения жгута на конечность?", a: "Не более 1,5–2 часа." },
+      { q: "Характерные признаки перелома?", a: "Резкая боль при движении; краснота и отёк; укорочение и деформация конечности; отсутствие активных движений." },
+      { q: "Первоочерёдные действия при поражении электрическим током на высоте?", a: "Освободить от действия тока, применив все меры предосторожности." },
+      { q: "Нет сознания, дыхания, пульса, кожа синюшная, зрачки расширены — что делать?", a: "Немедленно приступить к искусственному дыханию и наружному массажу сердца." },
+      { q: "Пострадавший в бессознательном состоянии — что делать?", a: "Наблюдать за дыханием, дать понюхать нашатырный спирт, опрыскивать лицо холодной водой. При западании языка — подпереть нижнюю челюсть." },
+      { q: "Частота дыхательных циклов при искусственной вентиляции лёгких?", a: "12–16 дыханий в минуту." },
+      { q: "Пострадавший дышит редко и судорожно, но пульс есть — что делать?", a: "Начать искусственное дыхание сразу после освобождения от опасных и вредных факторов." },
+      { q: "Что можно дать пить при отравлении аммиаком?", a: "Крепкий сладкий чай, кофе, 3%-й раствор молочной кислоты." },
+      { q: "Как действовать руками при отделении от токоведущих частей?", a: "Одной рукой, держа вторую за спиной или в кармане." },
+      { q: "В результате чего происходит поражение людей электротоком?", a: "Случайное прикосновение к частям электроустановки под напряжением; к металлическим конструкциям, оказавшимся под напряжением из-за повреждения." },
+      { q: "Что использовать для отделения от токоведущих частей (до 1000 В)?", a: "Канат, палку, доску или другой сухой предмет; можно тянуть за одежду (если сухая и отстаёт от тела)." },
+      { q: "Какое действие оказывает электроток на организм человека?", a: "Термическое, электрическое и биологическое." },
+      { q: "Первая помощь при ожогах?", a: "Осторожно снять одежду и обувь (лучше разрезать), перевязать как свежую рану." },
+      { q: "Первая помощь при общем охлаждении?", a: "Согреть пострадавшего, напоить горячим сладким чаем, накормить горячей пищей." },
+      { q: "Основная задача первой помощи при переломах и вывихах?", a: "Обеспечить спокойное и удобное положение для повреждённой конечности путём полной её неподвижности." },
+      { q: "Как поступить с инородным телом, попавшим в глаз?", a: "Промыть струёй раствора борной кислоты или чистой воды от наружного угла глаза к внутреннему." },
+      { q: "Какие изменения вызывает опасная концентрация аммиака в воздухе?", a: "Воспаление слизистых глаз и дыхательных путей, угнетение нервной системы, спазм голосовой щели, ожоги кожи." },
+      { q: "Первая помощь при угрожающем обмороке?", a: "Уложить, опустить голову, приподнять ноги, дать выпить холодной воды, дать понюхать нашатырный спирт." }
+    ]
+  }
+};
+
+// State
+let currentDeck = null;
+let theme = 'fire';
+let round = 1;
+let deck = [];
+let current = 0;
+let isFlipped = false;
+let roundKnew = 0;
+let roundSkip = 0;
+let totalKnew = 0;
+let totalCards = 0;
+let skippedIdxs = [];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function setTheme(t) {
+  theme = t;
+  const scene = document.getElementById('scene');
+  scene.className = 'scene ' + t + '-theme';
+  document.getElementById('gameTitle').className = 'game-title ' + t;
+  document.getElementById('dotPulse').className = 'dot-pulse';
+  document.getElementById('dotPulse').parentElement.className = 'round-badge ' + t;
+  document.getElementById('progressFill').className = 'progress-fill ' + t;
+  document.getElementById('roundEnd').className = 'round-end ' + t + '-theme';
+  document.getElementById('finalScreen').className = 'final-screen ' + t + '-theme';
+  const btnNext = document.getElementById('btnNext');
+  const btnAgain = document.getElementById('btnPlayAgain');
+  btnNext.className = 'btn-full btn-primary-' + t;
+  btnAgain.className = 'btn-full btn-primary-' + t;
+}
+
+function showOnly(id) {
+  ['menu','game','roundEnd','finalScreen'].forEach(x => {
+    const el = document.getElementById(x);
+    if (x === 'menu') el.style.display = (x === id) ? 'flex' : 'none';
+    else if (x === 'game') el.style.display = (x === id) ? 'flex' : 'none';
+    else el.classList.toggle('visible', x === id);
+  });
+  if (id === 'roundEnd') document.getElementById('game').style.display = 'none';
+  if (id === 'finalScreen') document.getElementById('game').style.display = 'none';
+}
+
+function goMenu() {
+  showOnly('menu');
+}
+
+function startGame(deckKey) {
+  currentDeck = DECKS[deckKey];
+  theme = currentDeck.theme;
+  totalCards = currentDeck.cards.length;
+  totalKnew = 0;
+  round = 1;
+  deck = shuffle(currentDeck.cards);
+
+  document.getElementById('gameTitle').textContent = currentDeck.name;
+  setTheme(theme);
+  showOnly('game');
+  startRound();
+}
+
+function startRound() {
+  current = 0; isFlipped = false;
+  roundKnew = 0; roundSkip = 0; skippedIdxs = [];
+
+  document.getElementById('roundLabel').textContent = `Круг ${round}`;
+  document.getElementById('deckSizeLabel').textContent = deck.length;
+  document.getElementById('deckSize').textContent = deck.length;
+  updateKnewBadge();
+  updateCard();
+}
+
+function updateKnewBadge() {
+  document.getElementById('knewBadge').textContent = `✓ ${totalKnew}/${totalCards}`;
+}
+
+function updateCard() {
+  const c = deck[current];
+  document.getElementById('questionText').textContent = c.q;
+  document.getElementById('answerText').textContent = c.a;
+  const num = String(current + 1).padStart(2, '0');
+  document.getElementById('qNum').textContent = num;
+  document.getElementById('qNumBack').textContent = num;
+  document.getElementById('currentNum').textContent = current + 1;
+  document.getElementById('progressFill').style.width = (current / deck.length * 100) + '%';
+  isFlipped = false;
+  document.getElementById('card').classList.remove('flipped');
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('card').classList.toggle('flipped', isFlipped);
+}
+
+function markKnew() {
+  if (!isFlipped) { flipCard(); return; }
+  roundKnew++; totalKnew++;
+  updateKnewBadge();
+  advance();
+}
+
+function markSkip() {
+  if (!isFlipped) { flipCard(); return; }
+  roundSkip++;
+  skippedIdxs.push(current);
+  advance();
+}
+
+function prevCard() {
+  if (current > 0) { current--; updateCard(); }
+}
+
+function advance() {
+  if (current < deck.length - 1) { current++; updateCard(); }
+  else endRound();
+}
+
+function endRound() {
+  document.getElementById('progressFill').style.width = '100%';
+
+  if (skippedIdxs.length === 0) {
+    document.getElementById('finalRounds').textContent = round;
+    showOnly('finalScreen');
+    return;
+  }
+
+  document.getElementById('reTitle').textContent = `Круг ${round} завершён!`;
+  document.getElementById('reKnew').textContent = roundKnew;
+  document.getElementById('reSkip').textContent = roundSkip;
+  document.getElementById('reSub').textContent =
+    skippedIdxs.length === 1
+      ? 'Осталась 1 карточка — ещё один круг!'
+      : `Следующий круг — ${skippedIdxs.length} незнакомых карточек`;
+  document.getElementById('btnNext').textContent = `Круг ${round + 1} — ${skippedIdxs.length} карточек →`;
+
+  showOnly('roundEnd');
+}
+
+function startNextRound() {
+  deck = shuffle(skippedIdxs.map(i => deck[i]));
+  round++;
+  showOnly('game');
+  startRound();
+}
+
+function playAgain() {
+  totalKnew = 0; round = 1;
+  deck = shuffle(currentDeck.cards);
+  showOnly('game');
+  startRound();
+}
+
+// Init
+document.getElementById('menu').style.display = 'flex';
+document.getElementById('game').style.display = 'none';
+</script>
+</body>
+</html>
