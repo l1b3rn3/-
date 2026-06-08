@@ -207,6 +207,42 @@
     margin-bottom: 20px;
   }
 
+  /* swipe hints */
+  .swipe-hints {
+    display: flex;
+    justify-content: space-between;
+    width: min(480px, 100%);
+    margin-bottom: 8px;
+    padding: 0 4px;
+    font-size: 0.68rem;
+    color: #333;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .swipe-hint-left  { color: #333; transition: color 0.15s; }
+  .swipe-hint-right { color: #333; transition: color 0.15s; }
+  .swipe-hint-left.active  { color: var(--red); }
+  .swipe-hint-right.active { color: var(--green); }
+
+  /* swipe overlay indicators */
+  .swipe-indicator {
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    padding: 8px 16px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s;
+    z-index: 10;
+  }
+  .swipe-indicator.left  { left: 12px;  color: var(--red);   border: 2px solid var(--red);   background: rgba(255,68,68,0.1); }
+  .swipe-indicator.right { right: 12px; color: var(--green); border: 2px solid var(--green); background: rgba(57,255,20,0.1); }
+
   /* card */
   .scene {
     width: min(480px, 100%);
@@ -423,7 +459,15 @@
     <span id="progressRight"></span>
   </div>
 
-  <div class="scene" id="scene" onclick="flipCard()">
+  <div class="swipe-hints">
+    <span class="swipe-hint-left" id="hintLeft">← Не знал</span>
+    <span style="color:#2a2a2a">TAP — перевернуть</span>
+    <span class="swipe-hint-right" id="hintRight">Знал →</span>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="swipe-indicator left"  id="indLeft">НЕ ЗНАЛ</div>
+    <div class="swipe-indicator right" id="indRight">ЗНАЛ</div>
     <div class="card" id="card">
       <div class="card-face card-front">
         <div class="q-number" id="qNum">01</div>
@@ -635,15 +679,110 @@ function flipCard() {
   document.getElementById('card').classList.toggle('flipped', isFlipped);
 }
 
+// ── SWIPE (pointer events — no double fire on mobile) ──
+(function() {
+  const SWIPE_THRESHOLD = 75;
+  const SHOW_THRESHOLD  = 15;
+
+  const scene = document.getElementById('scene');
+  const card  = document.getElementById('card');
+  const indL  = document.getElementById('indLeft');
+  const indR  = document.getElementById('indRight');
+  const hintL = document.getElementById('hintLeft');
+  const hintR = document.getElementById('hintRight');
+
+  let active = false;
+  let startX = 0, startY = 0, curX = 0;
+  let moved = false;        // did finger actually move horizontally?
+  let locked = false;       // locked to vertical scroll — ignore
+
+  function reset() {
+    active = false; moved = false; locked = false; curX = 0;
+    indL.style.opacity = 0; indR.style.opacity = 0;
+    hintL.classList.remove('active'); hintR.classList.remove('active');
+    card.style.transition = '';
+    card.style.transform  = '';
+  }
+
+  scene.addEventListener('pointerdown', e => {
+    active = true; moved = false; locked = false;
+    startX = e.clientX; startY = e.clientY; curX = 0;
+    card.style.transition = 'none';
+    scene.setPointerCapture(e.pointerId);
+  });
+
+  scene.addEventListener('pointermove', e => {
+    if (!active) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // First movement: decide axis
+    if (!moved && !locked) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      if (Math.abs(dy) > Math.abs(dx)) { locked = true; return; }
+      moved = true;
+    }
+    if (locked) return;
+
+    curX = dx;
+
+    // Only drag visually if answer is showing
+    if (!isFlipped) return;
+
+    const rot = dx * 0.035;
+    card.style.transform = `translateX(${dx * 0.45}px) rotate(${rot}deg) rotateY(180deg)`;
+
+    const ratio = Math.min(Math.abs(dx) / SWIPE_THRESHOLD, 1);
+    if (dx > SHOW_THRESHOLD) {
+      indR.style.opacity = ratio; indL.style.opacity = 0;
+      hintR.classList.add('active'); hintL.classList.remove('active');
+    } else if (dx < -SHOW_THRESHOLD) {
+      indL.style.opacity = ratio; indR.style.opacity = 0;
+      hintL.classList.add('active'); hintR.classList.remove('active');
+    } else {
+      indL.style.opacity = 0; indR.style.opacity = 0;
+      hintL.classList.remove('active'); hintR.classList.remove('active');
+    }
+  });
+
+  scene.addEventListener('pointerup', e => {
+    if (!active) return;
+    const dx = curX;
+    const wasMoved = moved;
+    reset();
+
+    if (!wasMoved) {
+      // Pure tap — just flip
+      flipCard();
+      return;
+    }
+
+    if (!isFlipped) return;
+
+    if (dx > SWIPE_THRESHOLD) {
+      card.style.transition = 'transform 0.25s ease';
+      card.style.transform  = `translateX(130%) rotate(18deg) rotateY(180deg)`;
+      setTimeout(() => { card.style.transition = ''; card.style.transform = ''; markKnew(); }, 250);
+    } else if (dx < -SWIPE_THRESHOLD) {
+      card.style.transition = 'transform 0.25s ease';
+      card.style.transform  = `translateX(-130%) rotate(-18deg) rotateY(180deg)`;
+      setTimeout(() => { card.style.transition = ''; card.style.transform = ''; markSkip(); }, 250);
+    }
+    // else: snap back (already done by reset())
+  });
+
+  scene.addEventListener('pointercancel', reset);
+})();
+
 function markKnew() {
-  if (!isFlipped) { flipCard(); return; }
+  if (!isFlipped) return; // требуем сначала увидеть ответ
   roundKnew++; totalKnew++;
   updateKnewBadge();
   advance();
 }
 
 function markSkip() {
-  if (!isFlipped) { flipCard(); return; }
+  if (!isFlipped) return; // требуем сначала увидеть ответ
   roundSkip++;
   skippedIdxs.push(current);
   advance();
